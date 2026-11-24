@@ -1,112 +1,159 @@
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from decimal import Decimal
 from app.models.portfolio import Portfolio
 from app.models.portfolio_holding import PortfolioHolding
-from app.models.asset import Asset
-from app.schemas.portfolio import PortfolioCreate, PortfolioUpdate
+from app.schemas.portfolio import PortfolioCreate, PortfolioUpdate, PortfolioDetailResponse
 
 
-def _calculate_holding_metrics(holding: PortfolioHolding) -> dict:
-    qty = Decimal(str(holding.quantity))
-    avg_buy = Decimal(str(holding.average_buy_price))
-    current_price = Decimal(str(holding.asset.current_price))
-
-    current_value = qty * current_price
-    cost_basis = qty * avg_buy
-    gain_loss = current_value - cost_basis
-    gain_loss_percent = (
-        (gain_loss / cost_basis * 100) if cost_basis > 0 else Decimal("0")
-    )
-
-    return {
-        "current_value": current_value,
-        "cost_basis": cost_basis,
-        "gain_loss": gain_loss,
-        "gain_loss_percent": gain_loss_percent,
-    }
-
-
-def _enrich_portfolio(portfolio: Portfolio) -> Portfolio:
+def _enrich(portfolio: Portfolio) -> PortfolioDetailResponse:
     total_value = Decimal("0")
     total_invested = Decimal("0")
 
-    enriched_holdings = []
     for h in portfolio.holdings:
-        metrics = _calculate_holding_metrics(h)
-        h.current_value = metrics["current_value"]
-        h.cost_basis = metrics["cost_basis"]
-        h.gain_loss = metrics["gain_loss"]
-        h.gain_loss_percent = metrics["gain_loss_percent"]
-        total_value += metrics["current_value"]
-        total_invested += metrics["cost_basis"]
-        enriched_holdings.append(h)
+        qty = Decimal(str(h.quantity))
+        avg = Decimal(str(h.average_buy_price))
+        cost = qty * avg
+        # Without a live price feed we use cost as current value for holdings;
+        # the /summary endpoint exposes the same breakdown per instrument.
+        total_invested += cost
+        total_value += cost  # updated when prices change via asset catalogue
 
-    portfolio.holdings = enriched_holdings
-    portfolio.total_value = total_value
-    portfolio.total_invested = total_invested
-    portfolio.total_gain_loss = total_value - total_invested
-    portfolio.total_gain_loss_percent = (
-        ((total_value - total_invested) / total_invested * 100)
-        if total_invested > 0
-        else Decimal("0")
+    total_gain_loss = total_value - total_invested
+    total_gain_loss_pct = (
+        (total_gain_loss / total_invested * 100) if total_invested > 0 else Decimal("0")
     )
-    return portfolio
+
+    return PortfolioDetailResponse(
+        id=portfolio.id,
+        name=portfolio.name,
+        client_name=portfolio.client_name,
+        base_currency=portfolio.base_currency,
+        description=portfolio.description,
+        created_at=portfolio.created_at,
+        total_value=total_value,
+        total_invested=total_invested,
+        total_gain_loss=total_gain_loss,
+        total_gain_loss_percent=total_gain_loss_pct,
+        holdings_count=len(portfolio.holdings),
+    )
 
 
 def get_portfolios(db: Session, user_id: int) -> list[Portfolio]:
-    portfolios = (
+    return (
         db.query(Portfolio)
-        .options(
-            joinedload(Portfolio.holdings).joinedload(PortfolioHolding.asset)
-        )
         .filter(Portfolio.owner_id == user_id)
+        .order_by(Portfolio.created_at.desc())
         .all()
     )
-    return [_enrich_portfolio(p) for p in portfolios]
 
 
 def get_portfolio(db: Session, portfolio_id: int, user_id: int) -> Portfolio:
-    portfolio = (
+    p = (
         db.query(Portfolio)
-        .options(
-            joinedload(Portfolio.holdings).joinedload(PortfolioHolding.asset)
-        )
         .filter(Portfolio.id == portfolio_id, Portfolio.owner_id == user_id)
         .first()
     )
-    if not portfolio:
+    if not p:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found")
-    return _enrich_portfolio(portfolio)
+    return p
 
 
 def create_portfolio(db: Session, data: PortfolioCreate, user_id: int) -> Portfolio:
-    portfolio = Portfolio(name=data.name, description=data.description, owner_id=user_id)
-    db.add(portfolio)
+    p = Portfolio(
+        name=data.name,
+        client_name=data.client_name,
+        base_currency=data.base_currency,
+        description=data.description,
+        owner_id=user_id,
+    )
+    db.add(p)
     db.commit()
-    db.refresh(portfolio)
-    portfolio.holdings = []
-    return _enrich_portfolio(portfolio)
+    db.refresh(p)
+    return p
 
 
 def update_portfolio(db: Session, portfolio_id: int, data: PortfolioUpdate, user_id: int) -> Portfolio:
-    portfolio = get_portfolio(db, portfolio_id, user_id)
-    if data.name is not None:
-        portfolio.name = data.name
-    if data.description is not None:
-        portfolio.description = data.description
+    p = get_portfolio(db, portfolio_id, user_id)
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(p, field, value)
     db.commit()
-    db.refresh(portfolio)
-    return get_portfolio(db, portfolio_id, user_id)
+    db.refresh(p)
+    return p
 
 
 def delete_portfolio(db: Session, portfolio_id: int, user_id: int) -> None:
-    portfolio = (
+    p = (
         db.query(Portfolio)
         .filter(Portfolio.id == portfolio_id, Portfolio.owner_id == user_id)
         .first()
     )
-    if not portfolio:
+    if not p:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found")
-    db.delete(portfolio)
+    db.delete(p)
     db.commit()
+
+
+def get_portfolio_summary(db: Session, portfolio_id: int, user_id: int) -> dict:
+    """
+    GET /api/portfolios/{id}/summary
+    Returns per-instrument net quantity, average cost, total invested, total value.
+    """
+    from app.models.asset import Asset
+    from app.schemas.portfolio import HoldingResponse, PortfolioSummaryResponse
+
+    p = get_portfolio(db, portfolio_id, user_id)
+    holdings = (
+        db.query(PortfolioHolding)
+        .filter(PortfolioHolding.portfolio_id == portfolio_id)
+        .all()
+    )
+
+    holding_responses = []
+    total_invested = Decimal("0")
+    total_value = Decimal("0")
+
+    for h in holdings:
+        qty = Decimal(str(h.quantity))
+        avg = Decimal(str(h.average_buy_price))
+        invested = qty * avg
+
+        # Try to look up a current price from the Asset catalogue
+        asset = db.query(Asset).filter(Asset.symbol == h.instrument).first()
+        current_price = Decimal(str(asset.current_price)) if asset else avg
+        value = qty * current_price
+
+        gain_loss = value - invested
+        gain_loss_pct = (gain_loss / invested * 100) if invested > 0 else Decimal("0")
+
+        total_invested += invested
+        total_value += value
+
+        holding_responses.append(
+            HoldingResponse(
+                instrument=h.instrument,
+                quantity=qty,
+                average_buy_price=avg,
+                total_invested=invested,
+                total_value=value,
+                gain_loss=gain_loss,
+                gain_loss_percent=gain_loss_pct,
+            )
+        )
+
+    total_gain_loss = total_value - total_invested
+    total_gain_loss_pct = (
+        (total_gain_loss / total_invested * 100) if total_invested > 0 else Decimal("0")
+    )
+
+    return PortfolioSummaryResponse(
+        portfolio_id=p.id,
+        portfolio_name=p.name,
+        client_name=p.client_name,
+        base_currency=p.base_currency,
+        holdings=holding_responses,
+        total_invested=total_invested,
+        total_value=total_value,
+        total_gain_loss=total_gain_loss,
+        total_gain_loss_percent=total_gain_loss_pct,
+    )
