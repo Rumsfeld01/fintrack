@@ -1,8 +1,10 @@
-# FinTrack by Finnet
+# FinTrack by Finnet Technologies
 
-A full-stack portfolio and transaction tracking application.
+A full-stack portfolio and transactions tracker for investment analysts.
 
-![FinTrack Dashboard](https://via.placeholder.com/1200x630/0f172a/10b981?text=FinTrack+by+Finnet)
+> **AI tool disclosure**: This project was built using Kiro (Finnet's AI coding assistant) as an accelerator. All architecture decisions, code structure, and business logic choices were made and reviewed by the developer. Per the assessment rules, every line can be explained.
+
+---
 
 ## Live Demo
 
@@ -10,7 +12,7 @@ A full-stack portfolio and transaction tracking application.
 |---|---|
 | **Application** | https://fintrack-app.vercel.app |
 | **API** | https://fintrack-api.onrender.com |
-| **API Docs (Swagger)** | https://fintrack-api.onrender.com/docs |
+| **API Docs (Swagger UI)** | https://fintrack-api.onrender.com/docs |
 | **API Docs (ReDoc)** | https://fintrack-api.onrender.com/redoc |
 
 ### Demo credentials
@@ -18,95 +20,118 @@ A full-stack portfolio and transaction tracking application.
 Email:    demo@fintrack.io
 Password: Demo1234!
 ```
+Pre-seeded with two portfolios (NSE equities + Treasury bills) for Acme Pension Fund.
 
 ---
 
 ## Features
 
-- **Dashboard** — total portfolio value, gain/loss, 30-day performance chart, asset allocation pie chart
-- **Portfolios** — create and manage multiple portfolios; per-portfolio holdings with live P&L
-- **Transactions** — record BUY/SELL transactions; holdings and weighted average cost update automatically
-- **Assets** — browse and add trackable assets across stocks, crypto, ETFs, bonds, and more
-- **Authentication** — JWT-based login/register, Argon2 password hashing, protected routes
-- **API documentation** — interactive Swagger UI at `/docs`, ReDoc at `/redoc`
+### Backend API
+- `POST /api/v1/auth/register` — register analyst, returns JWT
+- `POST /api/v1/auth/login` — authenticate, returns JWT
+- `GET /api/v1/auth/me` — current user profile
+- `GET/POST /api/v1/portfolios` — list and create portfolios (with client name and base currency KES/USD)
+- `GET/PUT/DELETE /api/v1/portfolios/{id}` — full CRUD
+- `GET /api/v1/portfolios/{id}/summary` — per-instrument net quantity, average cost, total invested, total value
+- `GET/POST /api/v1/portfolios/{id}/transactions` — nested transaction list and create
+- `DELETE /api/v1/transactions/{id}` — delete and reverse holding impact
+- `GET /api/v1/analytics/dashboard` — aggregated metrics and 30-day performance series
+
+### Frontend
+- Login/register with form validation and error states
+- Portfolio list with create, edit, delete and confirmation dialogs
+- Portfolio detail: sortable/filterable transaction table, holdings summary, inline add-transaction form
+- Allocation donut chart (per instrument) and 30-day performance line chart
+- Loading, empty, and error states on every API call
+- CSV export of transaction history
+- Responsive layout (desktop + 375px mobile)
+- Currency-aware formatting: KES 1,250,000.00 / USD 1,250.00, right-aligned numbers
+
+---
+
+## Architecture
+
+```
+React SPA (Vite + TypeScript)
+  └── Axios API client (Bearer JWT)
+        └── FastAPI backend (/api/v1/*)
+              ├── Auth service (Argon2 + JWT)
+              ├── Portfolio service (CRUD + summary computation)
+              ├── Transaction service (BUY/SELL with holding reconciliation)
+              ├── Analytics service (dashboard aggregation)
+              └── SQLAlchemy ORM
+                    └── PostgreSQL
+```
+
+**Key design decisions:**
+- Transactions are **nested under portfolios** (`/portfolios/{id}/transactions`) for clear ownership and simpler queries
+- **Instrument** is a plain string field (e.g. `SCOM`, `T-BILL-91`), not a FK to an asset catalogue — keeps transaction entry fast and matches how analysts think
+- Holdings are maintained as a **running aggregate** updated on every BUY/SELL, so the summary endpoint is a simple read
+- **Weighted average cost** recalculates on each BUY: `(old_qty × old_avg + new_qty × new_price) / total_qty`
+- All monetary arithmetic uses Python `Decimal` to avoid floating-point errors
+- Cascading deletes on portfolio → holdings and transactions
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS v4, Recharts |
-| Backend | FastAPI, Python 3.11, SQLAlchemy 2, Alembic |
-| Database | PostgreSQL |
-| Auth | JWT (python-jose), Argon2 (passlib) |
-| Deployment | Vercel (frontend), Render (backend), Supabase (database) |
+| Layer | Technology | Rationale |
+|---|---|---|
+| Frontend | React 18, TypeScript, Vite | Type safety, fast HMR, familiar ecosystem |
+| Styling | Tailwind CSS v4 | Utility-first keeps design tokens in one place |
+| Charts | Recharts | Lightweight, composable, good TypeScript support |
+| Backend | FastAPI, Python 3.11 | Auto OpenAPI docs, async-ready, Pydantic validation |
+| ORM | SQLAlchemy 2 + Alembic | Mature, explicit, Alembic for schema migrations |
+| Database | PostgreSQL | Production-grade, ACID, good Decimal support |
+| Auth | python-jose (JWT) + passlib (Argon2) | Industry-standard hashing resistant to GPU attacks |
+| Deployment | Vercel + Render + Supabase | Free tier, one-click deploys, managed Postgres |
 
 ---
 
-## Local Setup
+## Setup
 
 ### Prerequisites
 - Python 3.11+
 - Node.js 18+
 - PostgreSQL 14+ (or Docker)
 
-### Quick start with Docker
-
+### Docker (quickest)
 ```bash
 git clone https://github.com/your-username/fintrack.git
 cd fintrack
 docker-compose up --build
+# Frontend → http://localhost:5173
+# API Docs  → http://localhost:8000/docs
 ```
 
-Then open:
-- Frontend: http://localhost:5173
-- API Docs: http://localhost:8000/docs
-
-### Manual setup
+### Manual
 
 #### Backend
-
 ```bash
 cd backend
 
-# Create virtual environment
 python -m venv venv
 source venv/bin/activate       # Windows: venv\Scripts\activate
-
-# Install dependencies
 pip install -r requirements.txt
 
-# Configure environment
 cp .env.example .env
 # Edit .env — set DATABASE_URL to your PostgreSQL instance
 
-# Run migrations
 alembic upgrade head
+python seed.py                 # Creates demo account + sample data
 
-# Seed demo data
-python seed.py
-
-# Start the API server
-uvicorn app.main:app --reload
-# → http://localhost:8000
+uvicorn app.main:app --reload  # → http://localhost:8000
 ```
 
 #### Frontend
-
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
 
-# Configure environment
 cp .env.example .env.local
-# Edit .env.local — set VITE_API_URL=http://localhost:8000/api/v1
+# Edit .env.local — VITE_API_URL=http://localhost:8000/api/v1
 
-# Start dev server
-npm run dev
-# → http://localhost:5173
+npm run dev                    # → http://localhost:5173
 ```
 
 ---
@@ -115,77 +140,90 @@ npm run dev
 
 ```bash
 cd backend
-pip install -r requirements.txt
 pytest tests/ -v
+# 27 tests — no PostgreSQL required (SQLite in-memory)
 ```
 
-Tests use SQLite in-memory — no PostgreSQL instance required.
+Test coverage:
+- Auth: register, duplicate email, weak password, login, wrong password, JWT decode
+- Portfolios: CRUD, client name, currency, 404, auth guard, empty summary
+- Transactions: BUY, BUY→SELL, oversell rejection, zero qty, negative price, filters, delete, holdings summary update
 
 ---
 
-## Project Structure
+## API Overview
 
-```
-fintrack/
-├── backend/
-│   ├── app/
-│   │   ├── api/v1/endpoints/   # Route handlers
-│   │   ├── core/               # Config, JWT, security
-│   │   ├── models/             # SQLAlchemy models
-│   │   ├── schemas/            # Pydantic schemas
-│   │   ├── services/           # Business logic
-│   │   ├── db/                 # Database session
-│   │   └── main.py             # FastAPI app
-│   ├── alembic/                # Migrations
-│   ├── tests/                  # Pytest test suite
-│   ├── seed.py                 # Demo data seeder
-│   └── requirements.txt
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/         # Layout, UI, charts
-│   │   ├── context/            # AuthContext
-│   │   ├── pages/              # Route pages
-│   │   ├── services/           # API client wrappers
-│   │   ├── types/              # TypeScript interfaces
-│   │   └── utils/              # Formatting helpers
-│   └── package.json
-│
-├── docs/
-│   ├── architecture.md
-│   ├── database.md
-│   └── deployment.md
-│
-├── docker-compose.yml
-└── README.md
-```
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/v1/auth/register` | — | Register new analyst |
+| POST | `/api/v1/auth/login` | — | Login, receive JWT |
+| GET | `/api/v1/auth/me` | ✓ | Current user |
+| GET | `/api/v1/portfolios` | ✓ | List all portfolios |
+| POST | `/api/v1/portfolios` | ✓ | Create portfolio |
+| GET | `/api/v1/portfolios/{id}` | ✓ | Get portfolio |
+| PUT | `/api/v1/portfolios/{id}` | ✓ | Update portfolio |
+| DELETE | `/api/v1/portfolios/{id}` | ✓ | Delete (cascades) |
+| GET | `/api/v1/portfolios/{id}/summary` | ✓ | Holdings summary |
+| GET | `/api/v1/portfolios/{id}/transactions` | ✓ | List transactions (filterable) |
+| POST | `/api/v1/portfolios/{id}/transactions` | ✓ | Record BUY or SELL |
+| DELETE | `/api/v1/transactions/{id}` | ✓ | Delete + reverse holding |
+| GET | `/api/v1/analytics/dashboard` | ✓ | Aggregated metrics |
+
+Full interactive docs: `GET /docs` (Swagger UI) · `GET /redoc` (ReDoc)
 
 ---
 
-## API Endpoints
+## Environment Variables
 
-| Method | Path | Description |
+### Backend (`.env`)
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DATABASE_URL` | Yes | — | `postgresql://user:pass@host:5432/db` |
+| `SECRET_KEY` | Yes | — | JWT signing secret (32+ characters) |
+| `ALGORITHM` | No | `HS256` | JWT algorithm |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `30` | Token lifetime |
+| `ENVIRONMENT` | No | `development` | `development` or `production` |
+| `ALLOWED_ORIGINS` | Yes | — | Comma-separated CORS origins |
+
+### Frontend (`.env.local`)
+| Variable | Required | Description |
 |---|---|---|
-| POST | `/api/v1/auth/register` | Register new user |
-| POST | `/api/v1/auth/login` | Login, receive JWT |
-| GET | `/api/v1/auth/me` | Current user profile |
-| GET | `/api/v1/portfolios` | List portfolios |
-| POST | `/api/v1/portfolios` | Create portfolio |
-| GET | `/api/v1/portfolios/{id}` | Portfolio with holdings |
-| PATCH | `/api/v1/portfolios/{id}` | Update portfolio |
-| DELETE | `/api/v1/portfolios/{id}` | Delete portfolio |
-| GET | `/api/v1/transactions` | List transactions (filterable) |
-| POST | `/api/v1/transactions` | Record BUY/SELL |
-| DELETE | `/api/v1/transactions/{id}` | Delete transaction |
-| GET | `/api/v1/assets` | List assets |
-| POST | `/api/v1/assets` | Add asset |
-| PATCH | `/api/v1/assets/{id}` | Update asset price |
-| GET | `/api/v1/analytics/dashboard` | Dashboard metrics |
-
-Full interactive documentation: `/docs` (Swagger UI) · `/redoc` (ReDoc)
+| `VITE_API_URL` | Yes | Backend API base URL |
 
 ---
 
 ## Deployment
 
-See [docs/deployment.md](docs/deployment.md) for step-by-step instructions for Vercel + Render + Supabase.
+See [docs/deployment.md](docs/deployment.md) for Render + Vercel + Supabase step-by-step.
+
+Secrets are configured via platform environment variables — **never committed to the repo**.
+CORS is restricted to the deployed frontend domain.
+
+---
+
+## Assumptions
+
+- An **analyst** manages multiple client portfolios; each portfolio belongs to one analyst
+- **Instrument** is a free-form string (NSE tickers, T-Bill codes, etc.) rather than a normalised FK — this matches real analyst workflow where the instrument universe is too large to maintain as a catalogue
+- Holdings are maintained as a **running aggregate** rather than computed on-the-fly to keep summary reads fast
+- Current prices in the holdings summary come from the optional asset catalogue; if no catalogue entry exists for an instrument, cost is used as the current value
+- Base currency (KES/USD) is stored on the portfolio and used for display formatting only — no FX conversion is performed
+
+## Trade-offs
+
+| Decision | Trade-off |
+|---|---|
+| Instrument as string | Faster entry and simpler schema; at the cost of no normalisation or price feed per instrument |
+| Running aggregate for holdings | O(1) summary reads; at the cost of needing to reverse-calculate on transaction delete |
+| SQLite for tests | No separate test database needed; at the cost of some PostgreSQL-specific features not being tested |
+| Single-bundle JS (no code splitting) | Simpler build; bundle is ~746 KB minified (213 KB gzip) — acceptable for an internal tool |
+
+## Next Steps
+
+- [ ] Live price feed integration (NSE API or Yahoo Finance) to show real-time P&L
+- [ ] Pagination on transaction list for portfolios with 1000+ transactions
+- [ ] CSV export from the API layer, not just the frontend
+- [ ] Role-based access: read-only analyst vs. portfolio manager
+- [ ] Audit log for transaction modifications
+- [ ] CI/CD pipeline with GitHub Actions
+- [ ] Multi-currency support with FX rate conversion
