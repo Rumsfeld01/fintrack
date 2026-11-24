@@ -15,14 +15,13 @@ class Transaction(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     portfolio_id = Column(Integer, ForeignKey("portfolios.id"), nullable=False)
-    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False)
+    instrument = Column(String(50), nullable=False)   # e.g. SCOM, KCB, T-BILL-91
     transaction_type = Column(Enum(TransactionType), nullable=False)
     quantity = Column(Numeric(18, 8), nullable=False)
-    price = Column(Numeric(18, 6), nullable=False)
+    unit_price = Column(Numeric(18, 6), nullable=False)
     total_value = Column(Numeric(18, 6), nullable=False)
+    trade_date = Column(DateTime(timezone=True), nullable=False)
     notes = Column(String(500), nullable=True)
-    transacted_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     portfolio = relationship("Portfolio", back_populates="transactions")
-    asset = relationship("Asset", back_populates="transactions")
