@@ -1,0 +1,71 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.4, pytest-9.2.0, pluggy-1.7.0 -- c:\Users\TECSIDE\Documents\projects\Finnet\backend\venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: c:\Users\TECSIDE\Documents\projects\Finnet\backend
+plugins: anyio-4.16.0, asyncio-1.5.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 27 items
+
+tests/test_auth.py::test_register_success PASSED                         [  3%]
+tests/test_auth.py::test_register_duplicate_email PASSED                 [  7%]
+tests/test_auth.py::test_register_weak_password PASSED                   [ 11%]
+tests/test_auth.py::test_login_success PASSED                            [ 14%]
+tests/test_auth.py::test_login_wrong_password PASSED                     [ 18%]
+tests/test_auth.py::test_login_nonexistent_user PASSED                   [ 22%]
+tests/test_auth.py::test_get_me PASSED                                   [ 25%]
+tests/test_auth.py::test_get_me_no_token PASSED                          [ 29%]
+tests/test_portfolios.py::test_create_portfolio PASSED                   [ 33%]
+tests/test_portfolios.py::test_create_portfolio_missing_client_name PASSED [ 37%]
+tests/test_portfolios.py::test_list_portfolios PASSED                    [ 40%]
+tests/test_portfolios.py::test_get_portfolio PASSED                      [ 44%]
+tests/test_portfolios.py::test_update_portfolio PASSED                   [ 48%]
+tests/test_portfolios.py::test_portfolio_not_found PASSED                [ 51%]
+tests/test_portfolios.py::test_delete_portfolio PASSED                   [ 55%]
+tests/test_portfolios.py::test_portfolio_requires_auth PASSED            [ 59%]
+tests/test_portfolios.py::test_portfolio_summary_empty PASSED            [ 62%]
+tests/test_transactions.py::test_buy_transaction PASSED                  [ 66%]
+tests/test_transactions.py::test_buy_then_sell PASSED                    [ 70%]
+tests/test_transactions.py::test_sell_exceeds_holding PASSED             [ 74%]
+tests/test_transactions.py::test_zero_quantity_rejected PASSED           [ 77%]
+tests/test_transactions.py::test_negative_price_rejected PASSED          [ 81%]
+tests/test_transactions.py::test_list_transactions PASSED                [ 85%]
+tests/test_transactions.py::test_filter_transactions_by_instrument PASSED [ 88%]
+tests/test_transactions.py::test_delete_transaction PASSED               [ 92%]
+tests/test_transactions.py::test_holdings_summary_after_buy PASSED       [ 96%]
+tests/test_transactions.py::test_wrong_portfolio_blocked PASSED          [100%]
+
+============================== warnings summary ===============================
+venv\Lib\site-packages\starlette\formparsers.py:12
+  c:\Users\TECSIDE\Documents\projects\Finnet\backend\venv\Lib\site-packages\starlette\formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+venv\Lib\site-packages\starlette\testclient.py:41
+  c:\Users\TECSIDE\Documents\projects\Finnet\backend\venv\Lib\site-packages\starlette\testclient.py:41: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    [], typing.ContextManager[anyio.abc.BlockingPortal]
+
+app\db\base.py:8
+  c:\Users\TECSIDE\Documents\projects\Finnet\backend\app\db\base.py:8: MovedIn20Warning: The ``declarative_base()`` function is now available as sqlalchemy.orm.declarative_base(). (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    Base = declarative_base()
+
+venv\Lib\site-packages\fastapi\routing.py:211: 53 warnings
+  c:\Users\TECSIDE\Documents\projects\Finnet\backend\venv\Lib\site-packages\fastapi\routing.py:211: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    is_coroutine = asyncio.iscoroutinefunction(dependant.call)
+
+tests/test_auth.py: 29 warnings
+tests/test_portfolios.py: 52 warnings
+tests/test_transactions.py: 69 warnings
+  c:\Users\TECSIDE\Documents\projects\Finnet\backend\venv\Lib\site-packages\starlette\_utils.py:42: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    return asyncio.iscoroutinefunction(obj) or (
+
+tests/test_auth.py: 8 warnings
+tests/test_portfolios.py: 9 warnings
+tests/test_transactions.py: 10 warnings
+  c:\Users\TECSIDE\Documents\projects\Finnet\backend\venv\Lib\site-packages\starlette\_utils.py:43: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    callable(obj) and asyncio.iscoroutinefunction(obj.__call__)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+====================== 27 passed, 233 warnings in 3.30s =======================
+c:\Users\TECSIDE\Documents\projects\Finnet\backend\venv\Lib\site-packages\pytest_asyncio\plugin.py:306: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to "function" scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session". Set it to "fixture-scope" to keep the current behavior.
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))

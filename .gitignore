@@ -62,6 +62,10 @@ npm-debug.log*
 htmlcov/
 .pytest_cache/
 .mypy_cache/
+test.db
+test_results.txt
+test_results_final.txt
+test_collect.txt
 
 # Docker
 *.override.yml
