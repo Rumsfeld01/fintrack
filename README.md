@@ -1,9 +1,6 @@
 # FinTrack by Finnet Technologies
 
 A full-stack portfolio and transactions tracker for investment analysts.
-
-> **AI tool disclosure**: This project was built using Kiro (Finnet's AI coding assistant) as an accelerator. All architecture decisions, code structure, and business logic choices were made and reviewed by the developer. Per the assessment rules, every line can be explained.
-
 ---
 
 ## Live Demo
