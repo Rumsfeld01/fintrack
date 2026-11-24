@@ -69,3 +69,17 @@ test_collect.txt
 
 # Docker
 *.override.yml
+
+# Deployment scripts with secrets
+deploy_render.ps1
+create_render_service.ps1
+backend/run_migrate.py
+backend/capture_migrate.py
+backend/clean_and_seed.py
+backend/test_conn.py
+backend/test_conn2.py
+frontend/.vercel_deploy.ps1
+backend/deploy_supabase.ps1
+
+# Vercel
+frontend/.vercel/

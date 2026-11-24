@@ -10,17 +10,18 @@ A full-stack portfolio and transactions tracker for investment analysts.
 
 | Resource | URL |
 |---|---|
-| **Application** | https://fintrack-app.vercel.app |
-| **API** | https://fintrack-api.onrender.com |
-| **API Docs (Swagger UI)** | https://fintrack-api.onrender.com/docs |
-| **API Docs (ReDoc)** | https://fintrack-api.onrender.com/redoc |
+| **Application** | https://fintrack-ui-neon.vercel.app |
+| **API** | https://fintrack-api-xney.onrender.com |
+| **API Docs (Swagger UI)** | https://fintrack-api-xney.onrender.com/docs |
+| **API Docs (ReDoc)** | https://fintrack-api-xney.onrender.com/redoc |
+| **GitHub Repository** | https://github.com/Rumsfeld01/fintrack |
 
 ### Demo credentials
 ```
 Email:    demo@fintrack.io
 Password: Demo1234!
 ```
-Pre-seeded with two portfolios (NSE equities + Treasury bills) for Acme Pension Fund.
+Pre-seeded with two portfolios (NSE Equity Portfolio + Fixed Income Portfolio) for Acme Pension Fund — NSE equities (SCOM, KCB, EQTY, COOP, BAMB, EABL) and Treasury instruments (T-BILL-91, T-BILL-182, T-BOND-10).
 
 ---
 
@@ -197,7 +198,7 @@ Full interactive docs: `GET /docs` (Swagger UI) · `GET /redoc` (ReDoc)
 See [docs/deployment.md](docs/deployment.md) for Render + Vercel + Supabase step-by-step.
 
 Secrets are configured via platform environment variables — **never committed to the repo**.
-CORS is restricted to the deployed frontend domain.
+CORS is restricted to `https://fintrack-ui-neon.vercel.app`.
 
 ---
 

@@ -11,51 +11,33 @@
 
 ---
 
-## 1. Database — Supabase
+## 1. Database — Supabase ✅
 
-1. Create a project at [supabase.com](https://supabase.com)
-2. Go to **Settings → Database** and copy the connection string (URI format)
-3. It looks like: `postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres`
-4. Save it — you'll need it for the backend environment variable `DATABASE_URL`
+Project: `licwrbfuduclepwchmff` (eu-west-1 region)
+Pooler URL: `postgresql://postgres.licwrbfuduclepwchmff:[PASSWORD]@aws-0-eu-west-1.pooler.supabase.com:6543/postgres?sslmode=require`
 
----
-
-## 2. Backend — Render
-
-1. Push the repository to GitHub
-2. Go to [render.com](https://render.com) → New → Web Service
-3. Connect your GitHub repo; set **Root Directory** to `backend`
-4. Configure:
-   - **Runtime**: Python 3
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `alembic upgrade head && python seed.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-5. Add environment variables:
-
-   | Key | Value |
-   |---|---|
-   | `DATABASE_URL` | Your Supabase connection string |
-   | `SECRET_KEY` | A long random string (32+ chars) |
-   | `ALGORITHM` | `HS256` |
-   | `ACCESS_TOKEN_EXPIRE_MINUTES` | `60` |
-   | `ENVIRONMENT` | `production` |
-   | `ALLOWED_ORIGINS` | `https://your-app.vercel.app` |
-
-6. Deploy. After it starts, visit `https://your-service.onrender.com/docs` to confirm the API is live.
+Tables migrated and demo data seeded.
 
 ---
 
-## 3. Frontend — Vercel
+## 2. Backend — Render ✅
 
-1. Go to [vercel.com](https://vercel.com) → New Project → import your GitHub repo
-2. Set **Root Directory** to `frontend`
-3. Add environment variable:
+Live URL: **https://fintrack-api-xney.onrender.com**
+API Docs: **https://fintrack-api-xney.onrender.com/docs**
 
-   | Key | Value |
-   |---|---|
-   | `VITE_API_URL` | `https://your-service.onrender.com/api/v1` |
+Service config (already deployed):
+- Root Directory: `backend`
+- Build: `pip install -r requirements.txt`
+- Start: `alembic upgrade head && python seed.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
-4. Deploy. Vercel handles the build command (`npm run build`) and serves the dist automatically.
-5. The `vercel.json` already configures SPA rewrites so deep links work.
+---
+
+## 3. Frontend — Vercel ✅
+
+Live URL: **https://fintrack-ui-neon.vercel.app**
+
+Deployed from `frontend/` with:
+- `VITE_API_URL` = `https://fintrack-api-xney.onrender.com/api/v1`
 
 ---
 
