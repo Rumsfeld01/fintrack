@@ -1,4 +1,4 @@
-"""
+﻿"""
 Seed script: creates demo analyst and two sample portfolios with East African instruments.
 Run from backend/ directory: python seed.py
 """
@@ -22,11 +22,11 @@ Base.metadata.create_all(bind=engine)
 def seed():
     db = SessionLocal()
     try:
-        # ── Demo analyst ──────────────────────────────────────────────────
+        # â”€â”€ Demo analyst â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         demo_email = "demo@fintrack.io"
         existing = db.query(User).filter(User.email == demo_email).first()
         if existing:
-            print("Re-seeding: clearing demo user data…")
+            print("Re-seeding: clearing demo user dataâ€¦")
             db.query(Transaction).filter(
                 Transaction.portfolio_id.in_(
                     db.query(Portfolio.id).filter(Portfolio.owner_id == existing.id)
@@ -50,7 +50,7 @@ def seed():
         db.add(demo_user)
         db.flush()
 
-        # ── Asset catalogue (NSE + Treasury instruments) ──────────────────
+        # â”€â”€ Asset catalogue (NSE + Treasury instruments) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         assets_data = [
             ("SCOM",      "Safaricom PLC",                   AssetCategory.STOCK,     "14.50"),
             ("KCB",       "KCB Group PLC",                   AssetCategory.STOCK,     "28.80"),
@@ -81,7 +81,7 @@ def seed():
 
         db.flush()
 
-        # ── Portfolios ────────────────────────────────────────────────────
+        # â”€â”€ Portfolios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         nse_portfolio = Portfolio(
             name="NSE Equity Portfolio",
             client_name="Acme Pension Fund",
@@ -100,7 +100,7 @@ def seed():
         db.add(tbill_portfolio)
         db.flush()
 
-        # ── Transactions ──────────────────────────────────────────────────
+        # â”€â”€ Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         now = datetime.now(timezone.utc)
 
         def days_ago(n: int) -> datetime:
@@ -162,13 +162,14 @@ def seed():
                         average_buy_price=price,
                     )
                     db.add(holding)
+                    db.flush()  # flush so subsequent queries find this holding
             elif txn_type == TransactionType.SELL and holding:
                 holding.quantity = Decimal(str(holding.quantity)) - qty
                 if holding.quantity <= 0:
                     db.delete(holding)
 
         db.commit()
-        print("✓ Seed complete.")
+        print("âœ“ Seed complete.")
         print("  Demo login  : demo@fintrack.io / Demo1234!")
         print("  Portfolios  : NSE Equity Portfolio, Fixed Income Portfolio")
         print("  Client      : Acme Pension Fund (KES)")
@@ -176,7 +177,7 @@ def seed():
 
     except Exception as e:
         db.rollback()
-        print(f"✗ Seed failed: {e}")
+        print(f"âœ— Seed failed: {e}")
         raise
     finally:
         db.close()
@@ -184,3 +185,4 @@ def seed():
 
 if __name__ == "__main__":
     seed()
+
