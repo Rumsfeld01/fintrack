@@ -1,4 +1,10 @@
 {
+  "installCommand": "npm install --include=dev",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "env": {
+    "VITE_API_URL": "https://fintrack-api-xney.onrender.com/api/v1"
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
